@@ -1,5 +1,5 @@
 import { exec } from 'https://deno.land/x/execute/mod.ts'
-import { MAC_OSX_START_LINE, MAC_LINUX_START_LINE, MAC_RE, MAC_IP_RE } from './constant.ts'
+import { MAC_OSX_START_LINE, MAC_LINUX_START_LINE, MAC_RE, MAC_IP_RE, WIN_MAC_RE, WIN_IP_RE } from './constant.ts'
 
 const getInterfaceName = () => {
 	switch (Deno.build.os) {
@@ -12,14 +12,6 @@ const getInterfaceName = () => {
 		default:
 			return 'eth'
 	}
-}
-
-const getIfconfigCmd = () => {
-	if (Deno.build.os === 'windows') {
-		return 'ipconfig/all'
-	}
-
-	return '/sbin/ifconfig'
 }
 
 const getMacByIfconfig = (content: string, interfaceName: string) => {
@@ -83,17 +75,60 @@ const getMacByIfconfig = (content: string, interfaceName: string) => {
 		}
 	}
 
-	console.debug(macList)
-
-	return macList[0] || null
+	return macList[0]
 }
 
-export const getMac = async (interfaceName?: string) => {
-	try {
-		const ifconfig = await exec(getIfconfigCmd())
+const getMacByIpconfig = (content: string) => {
+	const lines = content.split('\n')
+	const macList: string[] = []
+	let lastInterface: any = {}
 
-		if (ifconfig) {
-			return getMacByIfconfig(ifconfig, interfaceName || getInterfaceName() || '')
+	for (let i = 0; i < lines.length; i++) {
+		let line = lines[i].trimRight()
+		const isHeadingLine = !/^\s+/.test(line)
+
+		if (lastInterface.ip && lastInterface.mac) {
+			return lastInterface.mac
+		}
+
+		if (isHeadingLine) {
+			lastInterface = {}
+		}
+		else {
+			const matchIp = WIN_IP_RE.exec(line)
+			const matchMac = !matchIp && WIN_MAC_RE.exec(line)
+
+			if (matchIp) {
+				lastInterface.ip = matchIp[1]
+			}
+			else if (matchMac) {
+				const mac = matchMac[1]
+
+				if (lastInterface.ip) {
+					return mac
+				}
+
+				lastInterface.mac = mac
+				macList.push(mac)
+			}
+		}
+	}
+
+	return macList[0]
+}
+
+const formatMac = (mac: string) => {
+	return mac ? mac.toLowerCase().replace(/-/g, ':') : null
+} 
+
+export const getMac = async (interfaceName?: string) => {
+	const isWin = Deno.build.os === 'windows'
+
+	try {
+		const output = await exec(isWin ? 'ipconfig /all' : 'ifconfig')
+
+		if (output) {
+			return formatMac(isWin ? getMacByIpconfig(output) : getMacByIfconfig(output, interfaceName || getInterfaceName() || ''))
 		}
 	}
 	catch (e) {
