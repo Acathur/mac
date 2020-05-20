@@ -119,7 +119,7 @@ const getMacByIpconfig = (content: string) => {
 
 const formatMac = (mac: string) => {
 	return mac ? mac.toLowerCase().replace(/-/g, ':') : null
-} 
+}
 
 export const getMac = async (interfaceName?: string) => {
 	const isWin = Deno.build.os === 'windows'

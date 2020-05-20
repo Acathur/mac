@@ -2,6 +2,8 @@
 
 Get the MAC addresses of the current machine, inspired by fengmk2's [address](https://github.com/node-modules/address) and adapted to Typescript.
 
+**Requires the `--allow-run` flag.**
+
 ## Usage
 
 ```ts
