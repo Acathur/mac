@@ -7,7 +7,7 @@ Get the MAC addresses of the current machine, inspired by fengmk2's [address](ht
 ## Usage
 
 ```ts
-import { getMac } from 'https://deno.land/x/mac/mod.ts'
+import { getMac } from 'https://cdn.depjs.com/mac/mod.ts'
 
 await getMac()
 // --> 78:ca:39:b0:e6:7d
